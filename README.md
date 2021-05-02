@@ -3,7 +3,9 @@ COVID19 Summary Display
 
 Display COVID-19 confirmed, deaths, and recovered cases on the LCD of Wio Terminal.
 
-![image](https://i.imgur.com/C7ilaAu.jpg)
+<div style="text-align:center">
+    <img src="https://i.imgur.com/C7ilaAu.jpg" alt="image" width="400"/>
+</div>
 
 ## Requirements
 - [Seeed_Arduino_LCD](https://github.com/Seeed-Studio/Seeed_Arduino_LCD)
