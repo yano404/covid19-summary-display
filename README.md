@@ -3,7 +3,7 @@ COVID19 Summary Display
 
 Display COVID-19 confirmed, deaths, and recovered cases on the LCD of Wio Terminal.
 
-<div style="text-align:center">
+<div align="center">
     <img src="https://i.imgur.com/C7ilaAu.jpg" alt="image" width="400"/>
 </div>
 
