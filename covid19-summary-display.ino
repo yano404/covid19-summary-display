@@ -69,7 +69,7 @@ WiFiClientSecure client;
 void setup() {
 
   Serial.begin(115200);
-  while (!Serial);
+  //while (!Serial); // Enable this line only when DEBUG. 
   delay(1000);
 
   Serial.println();
@@ -185,22 +185,22 @@ void loop() {
             tft.setTextColor(tft.color565(224, 225, 232));
             tft.drawString("COVID-19 Dashboard/" + region, 20, 10);
 
-            tft.fillRoundRect(10, 40, 300, 55, 5, tft.color565(40, 40, 86));
-            tft.fillRoundRect(10, 100, 300, 55, 5, tft.color565(40, 40, 86));
-            tft.fillRoundRect(10, 160, 300, 55, 5, tft.color565(40, 40, 86));
+            tft.fillRoundRect(10, 35, 300, 55, 5, tft.color565(40, 40, 86));
+            tft.fillRoundRect(10, 95, 300, 55, 5, tft.color565(40, 40, 86));
+            tft.fillRoundRect(10, 155, 300, 55, 5, tft.color565(40, 40, 86));
 
             tft.setFreeFont(FM9);
-            tft.drawString("Total Confirmed", 75, 45);
-            tft.drawString("Total Deaths", 95, 105);
-            tft.drawString("Total Recovered", 75, 165);
+            tft.drawString("Total Confirmed", 75, 40);
+            tft.drawString("Total Deaths", 95, 100);
+            tft.drawString("Total Recovered", 75, 160);
 
             tft.setFreeFont(FMB12);
             tft.setTextColor(TFT_RED);
-            tft.drawNumber(confirmed, 110, 70);
+            tft.drawNumber(confirmed, 110, 65);
             tft.setTextColor(tft.color565(224, 225, 232));
-            tft.drawNumber(deaths, 120, 130);
+            tft.drawNumber(deaths, 120, 125);
             tft.setTextColor(TFT_GREEN);
-            tft.drawNumber(recovered, 110, 190);
+            tft.drawNumber(recovered, 110, 185);
 
             tft.setFreeFont(FM9);
             tft.setTextColor(tft.color565(224, 225, 232));
