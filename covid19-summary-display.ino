@@ -347,9 +347,9 @@ void displayCOVID19Summary(
     tft.fillRoundRect(10, 155, 300, 55, 5, tft.color565(40, 40, 86));
 
     tft.setFreeFont(FM9);
-    tft.drawString("Confirmed", 160, 40);
-    tft.drawString("Deaths", 160, 100);
-    tft.drawString("Recovered", 160, 160);
+    tft.drawString("Total Confirmed", 160, 40);
+    tft.drawString("Total Deaths", 160, 100);
+    tft.drawString("Total Recovered", 160, 160);
 
     tft.setTextDatum(TC_DATUM); // Align top center
     tft.setFreeFont(FMB12);
