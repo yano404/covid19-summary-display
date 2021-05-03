@@ -69,7 +69,7 @@ WiFiClientSecure client;
 void setup() {
 
   Serial.begin(115200);
-  //while (!Serial); // Enable this line only when DEBUG. 
+  //while (!Serial); // Enable this line only when DEBUG.
   delay(1000);
 
   Serial.println();
@@ -150,9 +150,8 @@ void loop() {
             unsigned long confirmed = doc["features"][0]["attributes"]["Confirmed"].as<unsigned long>();
             unsigned long deaths = doc["features"][0]["attributes"]["Deaths"].as<unsigned long>();
             unsigned long recovered = doc["features"][0]["attributes"]["Recovered"].as<unsigned long>();
-            String lastUpdatedEpochMilli = doc["features"][0]["attributes"]["Last_Update"].as<String>();
-            lastUpdatedEpochMilli.remove(1, 1);
-            time_t lastUpdatedEpoch = lastUpdatedEpochMilli.substring(0, 10).toInt() + TZ;
+            unsigned long lastUpdatedStrIdx = payload.lastIndexOf("Last_Update") + 15;
+            time_t lastUpdatedEpoch = payload.substring(lastUpdatedStrIdx, lastUpdatedStrIdx + 10).toInt() + TZ;
             char lastUpdated[24];
             sprintf(lastUpdated,
                     "%04d-%02d-%02d(%s) %02d:%02d:%02d",
