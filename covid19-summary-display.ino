@@ -147,7 +147,6 @@ void setup() {
 }
 
 int displayVerbose = 1;
-int displayDone = 0;
 int loopCount = 0; // For DEBUG
 void loop() {
   if (&client) {
@@ -232,24 +231,20 @@ void loop() {
             Serial.println(" min");
             Serial.println();
 
-            displayDone = 0;
+            displayCOVID19Summary(
+              region, confirmed, deaths, recovered, active, incidentRate, mortalRate, lastUpdated, displayVerbose
+            );
+
             unsigned long t0 = millis();
             unsigned long t1 = millis();
             while (t1 >= t0 && t1 - t0 < REFRESH_INTERVAL) {
-              if (displayDone) {
-                int sw = digitalRead(WIO_KEY_C);
-                if (sw == 0) {
-                  displayVerbose = !displayVerbose;
-                  displayCOVID19Summary(
-                    region, confirmed, deaths, recovered, active, incidentRate, mortalRate, lastUpdated, displayVerbose
-                  );
-                  delay(500);
-                }
-              } else {
+              int sw = digitalRead(WIO_KEY_C);
+              if (sw == 0) {
+                displayVerbose = !displayVerbose;
                 displayCOVID19Summary(
                   region, confirmed, deaths, recovered, active, incidentRate, mortalRate, lastUpdated, displayVerbose
                 );
-                displayDone = 1;
+                delay(500);
               }
               t1 = millis();
             }
