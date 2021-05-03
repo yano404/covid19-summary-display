@@ -23,6 +23,44 @@ const char* ssid     = "Your WiFi SSID"; // WiFi SSID
 const char* password = "Your Password";  // WiFi pass
 const time_t TZ = 3600 * 9; // Timezone: UTC+9
 static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
+const unsigned long REFRESH_INTERVAL = 1800000; // 30min
+
+/*
+   Object ID list
+   --------------------
+   Australia      : 9
+   Brazil         : 24
+   Myanmar(Burma) : 28
+   Canada         : 33
+   China          : 37
+   Egypt          : 54
+   France         : 63
+   Germany        : 67
+   India          : 80
+   Italy          : 86
+   Japan          : 88
+   South Korea    : 92
+   Malaysia       : 108
+   Mexico         : 115
+   New Zealand    : 126
+   Pakistan       : 133
+   Philippines    : 138
+   Poland         : 139
+   Portugal       : 140
+   Russia         : 143
+   Singapore      : 156
+   South Africa   : 161
+   Spain          : 163
+   Sweden         : 167
+   Switzerland    : 168
+   Taiwan         : 170
+   Thailand       : 173
+   Turkey         : 178
+   USA            : 179
+   United Kingdom : 183
+   Vietnam        : 188
+*/
+const String objectID = "88"; // Japan
 
 // ROOT CA
 const char* test_root_ca = \
@@ -52,17 +90,10 @@ const char* test_root_ca = \
 
 // Fetch data from
 // https://covid-19-data.unstatshub.org/datasets/1cb306b5331945548745a5ccd290188e_2/geoservice?geometry=-120.498%2C22.999%2C36.826%2C47.695&orderBy=Country_Region
-String url = "https://services1.arcgis.com/"\
-             "0MSEUqKaxRlEPj5g/arcgis/rest/services/ncov_cases2_v1/FeatureServer/2/"\
-             "query?where=&objectIds=88&time=&geometry=&geometryType=esriGeometryEnvelope&inSR="\
-             "&spatialRel=esriSpatialRelIntersects&resultType=none&distance=0.0&units=esriSRUnit_Meter&returnGeodetic=false"\
-             "&outFields=OBJECTID%2CRecovered%2CCountry_Region%2CDeaths%2CConfirmed%2CLast_Update%2CActive"\
-             "&returnGeometry=false&featureEncoding=esriDefault&multipatchOption=none&maxAllowableOffset="\
-             "&geometryPrecision=&outSR=4326&datumTransformation=&applyVCSProjection=false&returnIdsOnly=false"\
-             "&returnUniqueIdsOnly=false&returnCountOnly=false&returnExtentOnly=false&returnQueryGeometry=false&"\
-             "returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics="\
-             "&having=&resultOffset=&resultRecordCount=&returnZ=false&returnM=false&returnExceededLimitFeatures=true"\
-             "&quantizationParameters=&sqlFormat=none&f=pjson&token=";
+String url = "https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/"\
+             "ncov_cases2_v1/FeatureServer/2/query?where=&objectIds=" + objectID + \
+             "&outFields=OBJECTID,Country_Region,Confirmed,Deaths,Recovered,Active,Incident_Rate,People_Tested,People_Hospitalized,Mortality_Rate,Last_Update"\
+             "&outSR=4326&f=pjson";
 
 WiFiClientSecure client;
 
@@ -71,6 +102,8 @@ void setup() {
   Serial.begin(115200);
   //while (!Serial); // Enable this line only when DEBUG.
   delay(1000);
+
+  pinMode(WIO_KEY_C, INPUT_PULLUP);
 
   Serial.println();
   Serial.println("=======================");
@@ -113,11 +146,17 @@ void setup() {
   client.setCACert(test_root_ca);
 }
 
+int displayVerbose = 1;
+int displayDone = 0;
+int loopCount = 0; // For DEBUG
 void loop() {
   if (&client) {
     {
       // Add a scoping block for HTTPClient https to make sure it is destroyed before WiFiClientSecure *client is
       HTTPClient https;
+
+      tft.setTextDatum(TL_DATUM); // Align top left (default)
+      tft.setFreeFont(FMB12);
 
       Serial.print("[HTTPS] begin...\n");
       tft.fillScreen(TFT_BLACK);
@@ -150,6 +189,9 @@ void loop() {
             unsigned long confirmed = doc["features"][0]["attributes"]["Confirmed"].as<unsigned long>();
             unsigned long deaths = doc["features"][0]["attributes"]["Deaths"].as<unsigned long>();
             unsigned long recovered = doc["features"][0]["attributes"]["Recovered"].as<unsigned long>();
+            unsigned long active = doc["features"][0]["attributes"]["Active"].as<unsigned long>();
+            float incidentRate = doc["features"][0]["attributes"]["Incident_Rate"].as<float>();
+            float mortalRate = doc["features"][0]["attributes"]["Mortality_Rate"].as<float>();
             unsigned long lastUpdatedStrIdx = payload.lastIndexOf("Last_Update") + 15;
             time_t lastUpdatedEpoch = payload.substring(lastUpdatedStrIdx, lastUpdatedStrIdx + 10).toInt() + TZ;
             char lastUpdated[24];
@@ -166,44 +208,51 @@ void loop() {
 
             Serial.println();
             Serial.println("[Data]");
-            Serial.print("Region    : ");
+            Serial.print("Region       : ");
             Serial.println(region);
-            Serial.print("Confirmed : ");
+            Serial.print("Confirmed    : ");
             Serial.println(confirmed);
-            Serial.print("Deaths    : ");
+            Serial.print("Deaths       : ");
             Serial.println(deaths);
-            Serial.print("Recovered : ");
+            Serial.print("Recovered    : ");
             Serial.println(recovered);
-            Serial.print("Updated   : ");
+            Serial.print("Active       : ");
+            Serial.println(active);
+            Serial.print("Inc. Rate    : ");
+            Serial.println(incidentRate);
+            Serial.print("Mortal. Rate : ");
+            Serial.println(mortalRate);
+            Serial.print("Updated      : ");
             Serial.println(lastUpdated);
             Serial.println();
 
-            // LCD
-            tft.fillScreen(tft.color565(24, 15, 60));
-            tft.setFreeFont(FF17);
-            tft.setTextColor(tft.color565(224, 225, 232));
-            tft.drawString("COVID-19 Dashboard/" + region, 20, 10);
+            Serial.println();
+            Serial.print("Interval: ");
+            Serial.print(REFRESH_INTERVAL / 60000);
+            Serial.println(" min");
+            Serial.println();
 
-            tft.fillRoundRect(10, 35, 300, 55, 5, tft.color565(40, 40, 86));
-            tft.fillRoundRect(10, 95, 300, 55, 5, tft.color565(40, 40, 86));
-            tft.fillRoundRect(10, 155, 300, 55, 5, tft.color565(40, 40, 86));
-
-            tft.setFreeFont(FM9);
-            tft.drawString("Total Confirmed", 75, 40);
-            tft.drawString("Total Deaths", 95, 100);
-            tft.drawString("Total Recovered", 75, 160);
-
-            tft.setFreeFont(FMB12);
-            tft.setTextColor(TFT_RED);
-            tft.drawNumber(confirmed, 110, 65);
-            tft.setTextColor(tft.color565(224, 225, 232));
-            tft.drawNumber(deaths, 120, 125);
-            tft.setTextColor(TFT_GREEN);
-            tft.drawNumber(recovered, 110, 185);
-
-            tft.setFreeFont(FM9);
-            tft.setTextColor(tft.color565(224, 225, 232));
-            tft.drawString(lastUpdated, 40, 220);
+            displayDone = 0;
+            unsigned long t0 = millis();
+            unsigned long t1 = millis();
+            while (t1 >= t0 && t1 - t0 < REFRESH_INTERVAL) {
+              if (displayDone) {
+                int sw = digitalRead(WIO_KEY_C);
+                if (sw == 0) {
+                  displayVerbose = !displayVerbose;
+                  displayCOVID19Summary(
+                    region, confirmed, deaths, recovered, active, incidentRate, mortalRate, lastUpdated, displayVerbose
+                  );
+                  delay(500);
+                }
+              } else {
+                displayCOVID19Summary(
+                  region, confirmed, deaths, recovered, active, incidentRate, mortalRate, lastUpdated, displayVerbose
+                );
+                displayDone = 1;
+              }
+              t1 = millis();
+            }
           }
         } else {
           Serial.printf("[HTTPS] GET... failed, error: %s\n", https.errorToString(httpCode).c_str());
@@ -215,23 +264,111 @@ void loop() {
         https.end();
       } else {
         Serial.printf("[HTTPS] Unable to connect\n");
+        tft.setTextDatum(TL_DATUM); // Align top left (default)
+        tft.setFreeFont(FMB12);
         tft.fillScreen(TFT_BLACK);
         tft.setCursor((320 - tft.textWidth("Unable to connect!")) / 2, 120);
         tft.print("Unable to connect!");
       }
       // End extra scoping block
     }
-
   } else {
     Serial.println("Unable to create client");
+    tft.setTextDatum(TL_DATUM); // Align top left (default)
+    tft.setFreeFont(FMB12);
     tft.fillScreen(TFT_BLACK);
     tft.setCursor((320 - tft.textWidth("Unable to")) / 2, 50);
     tft.print("Unable to");
     tft.setCursor((320 - tft.textWidth("create Client!")) / 2, 170);
     tft.print("create Client!");
   }
+  loopCount++;
+  Serial.print("loop count: ");
+  Serial.println(loopCount);
+}
 
-  Serial.println();
-  Serial.println("Interval: 30min");
-  delay(1800000);
+void displayCOVID19Summary(
+  String region,
+  unsigned long confirmed,
+  unsigned long deaths,
+  unsigned long recovered,
+  unsigned long active,
+  float incidentRate,
+  float mortalRate,
+  char* lastUpdated,
+  int displayVerbose
+) {
+  if (displayVerbose) {
+    tft.fillScreen(tft.color565(24, 15, 60));
+    tft.setFreeFont(FF17);
+    tft.setTextColor(tft.color565(224, 225, 232));
+    tft.setTextDatum(TC_DATUM); // Align top center
+    tft.drawString("COVID-19 Dashboard / " + region, 160, 10);
+
+    tft.fillRoundRect(8, 35, 150, 55, 5, tft.color565(40, 40, 86));
+    tft.fillRoundRect(8, 95, 150, 55, 5, tft.color565(40, 40, 86));
+    tft.fillRoundRect(8, 155, 150, 55, 5, tft.color565(40, 40, 86));
+
+    tft.fillRoundRect(162, 35, 150, 55, 5, tft.color565(40, 40, 86));
+    tft.fillRoundRect(162, 95, 150, 55, 5, tft.color565(40, 40, 86));
+    tft.fillRoundRect(162, 155, 150, 55, 5, tft.color565(40, 40, 86));
+
+    tft.setFreeFont(FM9);
+    tft.drawString("Confirmed", 83, 40);
+    tft.drawString("Deaths", 83, 100);
+    tft.drawString("Recovered", 83, 160);
+    tft.drawString("Active", 237, 40);
+    tft.drawString("Incident Rate", 237, 100);
+    tft.drawString("Death Rate", 237, 160);
+
+    tft.setTextDatum(TR_DATUM); // Align top right
+    tft.setFreeFont(FMB12);
+
+    tft.setTextColor(TFT_RED);
+    tft.drawNumber(confirmed, 148, 65);
+    tft.setTextColor(tft.color565(224, 225, 232));
+    tft.drawNumber(deaths, 148, 125);
+    tft.setTextColor(TFT_GREEN);
+    tft.drawNumber(recovered, 148, 185);
+
+    tft.setTextColor(TFT_RED);
+    tft.drawNumber(active, 302, 65);
+    tft.setTextColor(tft.color565(224, 225, 232));
+    tft.drawFloat(incidentRate, 2, 302, 125);
+    tft.drawFloat(mortalRate, 2, 302, 185);
+
+    tft.setFreeFont(FM9);
+    tft.setTextColor(tft.color565(224, 225, 232));
+    tft.drawString(lastUpdated, 310, 220);
+  } else {
+    tft.fillScreen(tft.color565(24, 15, 60));
+    tft.setFreeFont(FF17);
+    tft.setTextColor(tft.color565(224, 225, 232));
+    tft.setTextDatum(TC_DATUM); // Align top center
+    tft.drawString("COVID-19 Dashboard / " + region, 160, 10);
+
+    tft.fillRoundRect(10, 35, 300, 55, 5, tft.color565(40, 40, 86));
+    tft.fillRoundRect(10, 95, 300, 55, 5, tft.color565(40, 40, 86));
+    tft.fillRoundRect(10, 155, 300, 55, 5, tft.color565(40, 40, 86));
+
+    tft.setFreeFont(FM9);
+    tft.drawString("Confirmed", 160, 40);
+    tft.drawString("Deaths", 160, 100);
+    tft.drawString("Recovered", 160, 160);
+
+    tft.setTextDatum(TC_DATUM); // Align top center
+    tft.setFreeFont(FMB12);
+
+    tft.setTextColor(TFT_RED);
+    tft.drawNumber(confirmed, 160, 65);
+    tft.setTextColor(tft.color565(224, 225, 232));
+    tft.drawNumber(deaths, 160, 125);
+    tft.setTextColor(TFT_GREEN);
+    tft.drawNumber(recovered, 160, 185);
+
+    tft.setTextDatum(TR_DATUM); // Align top right
+    tft.setFreeFont(FM9);
+    tft.setTextColor(tft.color565(224, 225, 232));
+    tft.drawString(lastUpdated, 310, 220);
+  }
 }
