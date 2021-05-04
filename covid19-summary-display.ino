@@ -23,7 +23,7 @@ const char* ssid     = "Your WiFi SSID"; // WiFi SSID
 const char* password = "Your Password";  // WiFi pass
 const time_t TZ = 3600 * 9; // Timezone: UTC+9
 static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
-const unsigned long REFRESH_INTERVAL = 1800000; // 30min
+const unsigned long REFRESH_INTERVAL = 3600000; // 60min
 
 /*
   | ID  | Region         | ObjectID |

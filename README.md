@@ -26,7 +26,7 @@ Display COVID-19 confirmed, deaths, and recovered cases on the LCD of Wio Termin
    ```
 3. If necessary, change the refresh interval (milli seconds).
    ```c
-   const unsigned long REFRESH_INTERVAL = 1800000; // 30min
+   const unsigned long REFRESH_INTERVAL = 3600000; // 60min
    ```
 4. Upload sketch to the Wio Terminal.
 
