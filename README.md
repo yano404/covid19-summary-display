@@ -89,4 +89,5 @@ Fetch the information from [UN COVID-19 Data Hub Cases Country](https://covid-19
 
 ## License
 Copyright (c) 2021 Takayuki YANO
+
 The source code is licensed under the MIT License, see LICENSE.
