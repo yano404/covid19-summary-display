@@ -321,6 +321,7 @@ void loop() {
               int swB = digitalRead(WIO_KEY_B);
               if (swB == LOW) {
                 int select = selectRegion();
+                Serial.print("Selected region ID: ");
                 Serial.println(select);
                 if (select >= 0) {
                   regionID = select;
