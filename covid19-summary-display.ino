@@ -26,41 +26,113 @@ static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
 const unsigned long REFRESH_INTERVAL = 1800000; // 30min
 
 /*
-   Object ID list
-   --------------------
-   Australia      : 9
-   Brazil         : 24
-   Myanmar(Burma) : 28
-   Canada         : 33
-   China          : 37
-   Egypt          : 54
-   France         : 63
-   Germany        : 67
-   India          : 80
-   Italy          : 86
-   Japan          : 88
-   South Korea    : 92
-   Malaysia       : 108
-   Mexico         : 115
-   New Zealand    : 126
-   Pakistan       : 133
-   Philippines    : 138
-   Poland         : 139
-   Portugal       : 140
-   Russia         : 143
-   Singapore      : 156
-   South Africa   : 161
-   Spain          : 163
-   Sweden         : 167
-   Switzerland    : 168
-   Taiwan         : 170
-   Thailand       : 173
-   Turkey         : 178
-   USA            : 179
-   United Kingdom : 183
-   Vietnam        : 188
+  | ID  | Rerion         | ObjectID |
+  | --- | -------------- | -------- |
+  |   0 | Australia      |        9 |
+  |   1 | Brazil         |       24 |
+  |   2 | Myanmar(Burma) |       28 |
+  |   3 | Canada         |       33 |
+  |   4 | China          |       37 |
+  |   5 | Egypt          |       54 |
+  |   6 | France         |       63 |
+  |   7 | Germany        |       67 |
+  |   8 | India          |       80 |
+  |   9 | Italy          |       86 |
+  |  10 | Japan          |       88 |
+  |  11 | South Korea    |       92 |
+  |  12 | Malaysia       |      108 |
+  |  13 | Mexico         |      115 |
+  |  14 | New Zealand    |      126 |
+  |  15 | Pakistan       |      133 |
+  |  16 | Philippines    |      138 |
+  |  17 | Poland         |      139 |
+  |  18 | Portugal       |      140 |
+  |  19 | Russia         |      143 |
+  |  20 | Singapore      |      156 |
+  |  21 | South Africa   |      161 |
+  |  22 | Spain          |      163 |
+  |  23 | Sweden         |      167 |
+  |  24 | Switzerland    |      168 |
+  |  25 | Taiwan         |      170 |
+  |  26 | Thailand       |      173 |
+  |  27 | Turkey         |      178 |
+  |  28 | USA            |      179 |
+  |  29 | United Kingdom |      183 |
+  |  30 | Vietnam        |      188 |
 */
-const String objectID = "88"; // Japan
+
+const static char* REGIONS[] = {
+  "Australia",
+  "Brazil",
+  "Myanmar(Burma)",
+  "Canada",
+  "China",
+  "Egypt",
+  "France",
+  "Germany",
+  "India",
+  "Italy",
+  "Japan",
+  "South Korea",
+  "Malaysia",
+  "Mexico",
+  "New Zealand",
+  "Pakistan",
+  "Philippines",
+  "Poland",
+  "Portugal",
+  "Russia",
+  "Singapore",
+  "South Africa",
+  "Spain",
+  "Sweden",
+  "Switzerland",
+  "Taiwan",
+  "Thailand",
+  "Turkey",
+  "USA",
+  "United Kingdom",
+  "Vietnam"
+};
+
+const static char* REGION_OBJECT_IDS[] = {
+  "9",   // Australia
+  "24",  // Brazil
+  "28",  // Myanmar(Burma)
+  "33",  // Canada
+  "37",  // China
+  "54",  // Egypt
+  "63",  // France
+  "67",  // Germany
+  "80",  // India
+  "86",  // Italy
+  "88",  // Japan
+  "92",  // South Korea
+  "108", // Malaysia
+  "115", // Mexico
+  "126", // New Zealand
+  "133", // Pakistan
+  "138", // Philippines
+  "139", // Poland
+  "140", // Portugal
+  "143", // Russia
+  "156", // Singapore
+  "161", // South Africa
+  "163", // Spain
+  "167", // Sweden
+  "168", // Switzerland
+  "170", // Taiwan
+  "173", // Thailand
+  "178", // Turkey
+  "179", // USA
+  "183", // United Kingdom
+  "188"  // Vietnam
+};
+const int REGIONS_NUM = 31;
+
+/* Default Region: Japan */
+int regionID = 10;
+String objectID;
 
 // ROOT CA
 const char* test_root_ca = \
@@ -88,13 +160,6 @@ const char* test_root_ca = \
                            "+OkuE6N36B9K\n" \
                            "-----END CERTIFICATE-----\n";
 
-// Fetch data from
-// https://covid-19-data.unstatshub.org/datasets/1cb306b5331945548745a5ccd290188e_2/geoservice?geometry=-120.498%2C22.999%2C36.826%2C47.695&orderBy=Country_Region
-String url = "https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/"\
-             "ncov_cases2_v1/FeatureServer/2/query?where=&objectIds=" + objectID + \
-             "&outFields=OBJECTID,Country_Region,Confirmed,Deaths,Recovered,Active,Incident_Rate,People_Tested,People_Hospitalized,Mortality_Rate,Last_Update"\
-             "&outSR=4326&f=pjson";
-
 WiFiClientSecure client;
 
 void setup() {
@@ -103,7 +168,14 @@ void setup() {
   //while (!Serial); // Enable this line only when DEBUG.
   delay(1000);
 
+  // Button C pressed -> switch verbose
   pinMode(WIO_KEY_C, INPUT_PULLUP);
+  // Button B pressed -> change region
+  pinMode(WIO_KEY_B, INPUT_PULLUP);
+  pinMode(WIO_5S_UP, INPUT_PULLUP);
+  pinMode(WIO_5S_DOWN, INPUT_PULLUP);
+  pinMode(WIO_5S_PRESS, INPUT_PULLUP);
+
 
   Serial.println();
   Serial.println("=======================");
@@ -139,8 +211,6 @@ void setup() {
   tft.print("WiFi Connected!");
   delay(1000);
 
-  Serial.print("Fetch data from");
-  Serial.println(url);
   Serial.println("set CA Cert:");
   Serial.println(test_root_ca);
   client.setCACert(test_root_ca);
@@ -163,7 +233,17 @@ void loop() {
       tft.setCursor((320 - tft.textWidth("Conectting to Server..")) / 2, 120);
       tft.print("Connecting to Server..");
 
+      objectID = REGION_OBJECT_IDS[regionID];
+      // Fetch data from
+      // https://covid-19-data.unstatshub.org/datasets/1cb306b5331945548745a5ccd290188e_2/geoservice?geometry=-120.498%2C22.999%2C36.826%2C47.695&orderBy=Country_Region
+      String url = "https://services1.arcgis.com/0MSEUqKaxRlEPj5g/arcgis/rest/services/"\
+                   "ncov_cases2_v1/FeatureServer/2/query?where=&objectIds=" + objectID + \
+                   "&outFields=OBJECTID,Country_Region,Confirmed,Deaths,Recovered,Active,Incident_Rate,People_Tested,People_Hospitalized,Mortality_Rate,Last_Update"\
+                   "&outSR=4326&f=pjson";
+
       if (https.begin(client, url)) {  // HTTPS
+        Serial.println("Fetch data from");
+        Serial.println(url);
         Serial.print("[HTTPS] GET...\n");
         // start connection and send HTTP header
         int httpCode = https.GET();
@@ -238,8 +318,21 @@ void loop() {
             unsigned long t0 = millis();
             unsigned long t1 = millis();
             while (t1 >= t0 && t1 - t0 < REFRESH_INTERVAL) {
-              int sw = digitalRead(WIO_KEY_C);
-              if (sw == 0) {
+              int swB = digitalRead(WIO_KEY_B);
+              if (swB == LOW) {
+                int select = selectRegion();
+                Serial.println(select);
+                if (select >= 0) {
+                  regionID = select;
+                  break;
+                } else {
+                  displayCOVID19Summary(
+                    region, confirmed, deaths, recovered, active, incidentRate, mortalRate, lastUpdated, displayVerbose
+                  );
+                }
+              }
+              int swC = digitalRead(WIO_KEY_C);
+              if (swC == LOW) {
                 displayVerbose = !displayVerbose;
                 displayCOVID19Summary(
                   region, confirmed, deaths, recovered, active, incidentRate, mortalRate, lastUpdated, displayVerbose
@@ -366,4 +459,90 @@ void displayCOVID19Summary(
     tft.setTextColor(tft.color565(224, 225, 232));
     tft.drawString(lastUpdated, 310, 220);
   }
+}
+
+int selectRegion() {
+  tft.fillScreen(tft.color565(24, 15, 60));
+  tft.setFreeFont(FF17);
+  tft.setTextColor(tft.color565(224, 225, 232));
+  tft.setTextDatum(TC_DATUM); // Align top center
+  tft.drawString("Select Region", 160, 10);
+  tft.fillRoundRect(10, 35, 300, 35, 5, tft.color565(40, 40, 86));
+  tft.fillRoundRect(10, 75, 300, 35, 5, tft.color565(40, 40, 86));
+  tft.fillRoundRect(10, 115, 300, 35, 5, TFT_WHITE);
+  tft.fillRoundRect(10, 155, 300, 35, 5, tft.color565(40, 40, 86));
+  tft.fillRoundRect(10, 195, 300, 35, 5, tft.color565(40, 40, 86));
+
+  int selectedRegionID = regionID;
+
+  tft.setTextDatum(MC_DATUM); // Align mid center
+  tft.setFreeFont(FMB12);
+  tft.setTextPadding(300);
+
+  while (1) {
+    if (selectedRegionID == 0) {
+      tft.setTextColor(TFT_BLACK, TFT_WHITE);
+      tft.drawString(REGIONS[selectedRegionID], 160, 133);
+      tft.setTextColor(TFT_WHITE, tft.color565(40, 40, 86));
+      tft.drawString("", 160, 53);
+      tft.drawString("", 160, 93);
+      tft.drawString(REGIONS[selectedRegionID + 1], 160, 173);
+      tft.drawString(REGIONS[selectedRegionID + 2], 160, 213);
+    } else if (selectedRegionID == 1) {
+      tft.setTextColor(TFT_BLACK, TFT_WHITE);
+      tft.drawString(REGIONS[selectedRegionID], 160, 133);
+      tft.setTextColor(TFT_WHITE, tft.color565(40, 40, 86));
+      tft.drawString("", 160, 53);
+      tft.drawString(REGIONS[selectedRegionID - 1], 160, 93);
+      tft.drawString(REGIONS[selectedRegionID + 1], 160, 173);
+      tft.drawString(REGIONS[selectedRegionID + 2], 160, 213);
+    } else if (selectedRegionID == REGIONS_NUM - 1) {
+      tft.setTextColor(TFT_BLACK, TFT_WHITE);
+      tft.drawString(REGIONS[selectedRegionID], 160, 133);
+      tft.setTextColor(TFT_WHITE, tft.color565(40, 40, 86));
+      tft.drawString(REGIONS[selectedRegionID - 2], 160, 53);
+      tft.drawString(REGIONS[selectedRegionID - 1], 160, 93);
+      tft.drawString("", 160, 173);
+      tft.drawString("", 160, 213);
+    } else if (selectedRegionID == REGIONS_NUM - 2) {
+      tft.setTextColor(TFT_BLACK, TFT_WHITE);
+      tft.drawString(REGIONS[selectedRegionID], 160, 133);
+      tft.setTextColor(TFT_WHITE, tft.color565(40, 40, 86));
+      tft.drawString(REGIONS[selectedRegionID - 2], 160, 53);
+      tft.drawString(REGIONS[selectedRegionID - 1], 160, 93);
+      tft.drawString(REGIONS[selectedRegionID + 1], 160, 173);
+      tft.drawString("", 160, 213);
+    } else {
+      tft.setTextColor(TFT_BLACK, TFT_WHITE);
+      tft.drawString(REGIONS[selectedRegionID], 160, 133);
+      tft.setTextColor(TFT_WHITE, tft.color565(40, 40, 86));
+      tft.drawString(REGIONS[selectedRegionID - 2], 160, 53);
+      tft.drawString(REGIONS[selectedRegionID - 1], 160, 93);
+      tft.drawString(REGIONS[selectedRegionID + 1], 160, 173);
+      tft.drawString(REGIONS[selectedRegionID + 2], 160, 213);
+    }
+
+    delay(100); // Without delay, scroll speed is too fast.
+
+    int swUP = digitalRead(WIO_5S_UP);
+    int swDOWN = digitalRead(WIO_5S_DOWN);
+    int swB = digitalRead(WIO_KEY_B);
+    int swPRESS = digitalRead(WIO_5S_PRESS);
+    if (swDOWN == LOW) {
+      if (selectedRegionID != REGIONS_NUM - 1) {
+        selectedRegionID++;
+      }
+    } else if (swUP == LOW) {
+      if (selectedRegionID != 0) {
+        selectedRegionID--;
+      }
+    }
+    if (swB == LOW) {
+      selectedRegionID = -1;
+      break;
+    } else if (swPRESS == LOW) {
+      break;
+    }
+  }
+  return selectedRegionID;
 }
