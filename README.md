@@ -86,3 +86,7 @@ Fetch the information from [UN COVID-19 Data Hub Cases Country](https://covid-19
 | 28  | USA            | 179      |
 | 29  | United Kingdom | 183      |
 | 30  | Vietnam        | 188      |
+
+## License
+Copyright (c) 2021 Takayuki YANO
+The source code is licensed under the MIT License, see LICENSE.
