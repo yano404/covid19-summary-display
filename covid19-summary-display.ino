@@ -64,7 +64,7 @@ const unsigned long REFRESH_INTERVAL = 1800000; // 30min
 const static char* REGIONS[] = {
   "Australia",
   "Brazil",
-  "Myanmar(Burma)",
+  "Myanmar",
   "Canada",
   "China",
   "Egypt",
@@ -264,7 +264,7 @@ void loop() {
             Serial.println(payload);
             DynamicJsonDocument doc(1024 * 5);
             deserializeJson(doc, payload);
-            String region = doc["features"][0]["attributes"]["Country_Region"].as<String>();
+            String region = REGIONS[regionID];
             unsigned long confirmed = doc["features"][0]["attributes"]["Confirmed"].as<unsigned long>();
             unsigned long deaths = doc["features"][0]["attributes"]["Deaths"].as<unsigned long>();
             unsigned long recovered = doc["features"][0]["attributes"]["Recovered"].as<unsigned long>();
@@ -288,7 +288,7 @@ void loop() {
             Serial.println();
             Serial.println("[Data]");
             Serial.print("Region       : ");
-            Serial.println(region);
+            Serial.println(doc["features"][0]["attributes"]["Country_Region"].as<String>());
             Serial.print("Confirmed    : ");
             Serial.println(confirmed);
             Serial.print("Deaths       : ");
