@@ -26,7 +26,7 @@ static const char *wd[7] = {"Sun", "Mon", "Tue", "Wed", "Thr", "Fri", "Sat"};
 const unsigned long REFRESH_INTERVAL = 1800000; // 30min
 
 /*
-  | ID  | Rerion         | ObjectID |
+  | ID  | Region         | ObjectID |
   | --- | -------------- | -------- |
   |   0 | Australia      |        9 |
   |   1 | Brazil         |       24 |
