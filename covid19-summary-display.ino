@@ -175,6 +175,8 @@ void setup() {
   pinMode(WIO_5S_UP, INPUT_PULLUP);
   pinMode(WIO_5S_DOWN, INPUT_PULLUP);
   pinMode(WIO_5S_PRESS, INPUT_PULLUP);
+  // Button A pressed -> refresh
+  pinMode(WIO_KEY_A, INPUT_PULLUP);
 
 
   Serial.println();
@@ -318,6 +320,10 @@ void loop() {
             unsigned long t0 = millis();
             unsigned long t1 = millis();
             while (t1 >= t0 && t1 - t0 < REFRESH_INTERVAL) {
+              int swA = digitalRead(WIO_KEY_A);
+              if (swA == LOW) {
+                break;
+              }
               int swB = digitalRead(WIO_KEY_B);
               if (swB == LOW) {
                 int select = selectRegion();
