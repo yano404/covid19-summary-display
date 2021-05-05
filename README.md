@@ -45,6 +45,9 @@ There are 3 buttons on the upper side of Wio Terminal, and `C` button is the lef
    | `PRESS` (5way switch)   | Select the region.      |
    | `B` (upper side button) | Cancel.                 |
 
+### Force refresh
+Press `A` button.
+
 ### When unable to connect the WiFi or server
 Reset Wio Terminal.
 Almost all errors are solved by reset.
